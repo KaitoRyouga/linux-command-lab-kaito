@@ -1,0 +1,10 @@
+networks:
+  service_network:
+  internal:
+    internal: true
+
+volumes:
+  nginx-certs:
+  nginx-vhost:
+  nginx-html:
+  db_data:

@@ -1,0 +1,7 @@
+linux-command-1:
+	restart: always
+	build: 
+		context: ./linux-command-1
+		dockerfile: Dockerfile
+	ports:
+		- "1211:22"

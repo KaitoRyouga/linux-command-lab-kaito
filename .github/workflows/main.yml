@@ -1,0 +1,51 @@
+name: Docker-project-tool-sercurity-server
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  IMAGE_NAME: image
+
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Log into registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+      # - name: Build image
+      #   run: docker-compose -p dokuhebi build
+
+      - name: Push image
+        run: |
+          chmod -R 777 build.sh
+          ./build.sh
+          
+          # VERSION=latest
+
+          # docker tag dokuhebi_linux-command-1 docker.pkg.github.com/kaitoryouga/linux-command-lab/dokuhebi_linux-command-1:$VERSION
+          # docker push docker.pkg.github.com/kaitoryouga/linux-command-lab/dokuhebi_linux-command-1:$VERSION
+
+      # - name: copy file via ssh key
+      #   uses: appleboy/scp-action@master
+      #   with:
+      #     host: ${{ secrets.HOST }}
+      #     username: ${{ secrets.USERNAME }}
+      #     port: ${{ secrets.PORT }}
+      #     key: ${{ secrets.KEY }}
+      #     source: "docker-compose.cloud.yml"
+      #     target: "/tmp"
+          
+      # - name: executing remote ssh commands using ssh key
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.HOST }}
+      #     username: ${{ secrets.USERNAME }}
+      #     key: ${{ secrets.KEY }}
+      #     port: ${{ secrets.PORT }}
+      #     script: cat /tmp/docker-compose.cloud.yml > /home/kmactfweb/CTFd/docker-compose.yml && rm -f /tmp/docker-compose* && cd /home/kmactfweb/CTFd && docker-compose up -d

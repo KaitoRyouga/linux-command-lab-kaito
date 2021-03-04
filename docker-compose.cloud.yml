@@ -1,0 +1,133 @@
+version: "3.8"
+
+services:
+
+  # linux-command-1:
+  #   restart: always
+  #   image: docker.pkg.github.com/kaitoryouga/project-tool-sercurity-server/pts_linux-command-1:latest
+  #   ports:
+  #     - "1111:22"
+  #   environment:
+  #     HTTP_PORT: 1111
+  #   networks:
+  #     service_network:
+
+  web-slqinjection-1:
+    restart: always
+    image: docker.pkg.github.com/kaitoryouga/project-tool-sercurity-server/pts_web-slqinjection-1:latest
+    expose:
+        - 8080
+    environment:
+      HTTP_PORT: 8080
+      VIRTUAL_HOST: web-slqinjection-1.kaito.ninja
+      LETSENCRYPT_HOST: web-slqinjection-1.kaito.ninja
+      LETSENCRYPT_EMAIL: "kmactfweb@gmail.com"
+      DATABASE_URL: mysql+pymysql://root:kaitoryouga1@3@db/ctflab
+    networks:
+      service_network:
+
+  ctfd:
+    build: .
+    user: root
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      UPLOAD_FOLDER: /var/uploads
+      DATABASE_URL: mysql+pymysql://ctfd:ctfd@dbctf/ctfd
+      REDIS_URL: redis://cache:6379
+      WORKERS: 1
+      LOG_FOLDER: /var/log/CTFd
+      HTTP_PORT: 8000
+      VIRTUAL_HOST: ctf.kaito.ninja
+      LETSENCRYPT_HOST: ctf.kaito.ninja
+      LETSENCRYPT_EMAIL: "kmactfweb@gmail.com"
+    volumes:
+      - .data/CTFd/logs:/var/log/CTFd
+      - .data/CTFd/uploads:/var/uploads
+      - .:/opt/CTFd:ro
+    depends_on:
+      - db
+    networks:
+        service_network:
+        internal:
+
+
+  dbctf:
+    image: mariadb:10.4.12
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ctfd
+      MYSQL_USER: ctfd
+      MYSQL_PASSWORD: ctfd
+      MYSQL_DATABASE: ctfd
+    volumes:
+      - .data/mysql:/var/lib/mysql
+    networks:
+        internal:
+    # This command is required to set important mariadb defaults
+    command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --wait_timeout=28800, --log-warnings=0]
+
+  cache:
+    image: redis:4
+    restart: always
+    volumes:
+    - .data/redis:/data
+    networks:
+        service_network:
+
+  db:
+    image: mysql:5.6.51
+    volumes:
+        - db_data:/var/lib/mysql
+    restart: always
+    environment:
+        MYSQL_ROOT_PASSWORD: kaitoryouga1@3
+        MYSQL_DATABASE: ctflab
+        MYSQL_USER: root
+        MYSQL_PASSWORD: kaitoryouga1@3
+    networks:
+        service_network:
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json
+    command: --interval 5
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - 80:80
+      - 443:443
+    container_name: nginx-proxy
+    networks:
+      service_network:
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+
+  web-redirect:
+    image: adamkdean/redirect
+    environment:
+      VIRTUAL_HOST: kaito.ninja
+      LETSENCRYPT_HOST: kaito.ninja
+      LETSENCRYPT_EMAIL: "kmactfweb@gmail.com"
+      REDIRECT_LOCATION: "https://kaito.ninja"
+    networks:
+      service_network:
+    
+  nginx-proxy-letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    environment:
+      NGINX_PROXY_CONTAINER: "nginx-proxy"
+    networks:
+      service_network:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
